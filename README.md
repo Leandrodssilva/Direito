@@ -18,7 +18,7 @@ Depois vem a **revisão**: fichas de palavras (repetição) e as questões que a
 
 Recursos extras:
 
-- **Código Civil explicado**: o texto da lei artigo por artigo, com explicação em palavras simples, item por item, exemplo da vida real, pegadinhas e palavras novas. Começa pelos arts. 1º a 5º e vai crescendo em ordem.
+- **Código Civil explicado**: o texto da lei artigo por artigo, com explicação em palavras simples, item por item, exemplo da vida real, pegadinhas e palavras novas. Já tem os arts. 1º a 25 e vai crescendo em ordem.
 - **Dicionário do juridiquês**, com busca, montado a partir das palavras novas das lições e dos artigos.
 - **Progresso** salvo no próprio navegador.
 - **Pergunte à Dona Justa**: quando o app está aberto como Artifact no Claude, a pessoa pode tirar dúvidas e receber respostas no mesmo estilo simples. Fora do Claude, essa parte fica escondida e o resto funciona normalmente.
