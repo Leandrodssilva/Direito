@@ -18,7 +18,8 @@ Depois vem a **revisão**: fichas de palavras (repetição) e as questões que a
 
 Recursos extras:
 
-- **Dicionário do juridiquês**, com busca, montado a partir das palavras novas de todas as lições.
+- **Código Civil explicado**: o texto da lei artigo por artigo, com explicação em palavras simples, item por item, exemplo da vida real, pegadinhas e palavras novas. Começa pelos arts. 1º a 5º e vai crescendo em ordem.
+- **Dicionário do juridiquês**, com busca, montado a partir das palavras novas das lições e dos artigos.
 - **Progresso** salvo no próprio navegador.
 - **Pergunte à Dona Justa**: quando o app está aberto como Artifact no Claude, a pessoa pode tirar dúvidas e receber respostas no mesmo estilo simples. Fora do Claude, essa parte fica escondida e o resto funciona normalmente.
 
@@ -46,6 +47,7 @@ index.html                 página do aplicativo
 css/estilo.css             visual (tema claro e escuro)
 js/app.js                  telas, rotas, progresso, testes e a Dona Justa
 js/modulos/NN-*.js         conteúdo: cada arquivo é um módulo
+js/codigo/NNNN-NNNN.js     Código Civil explicado: cada arquivo traz um bloco de artigos
 scripts/gerar-artifact.js  gera a versão da página para publicar como Artifact
 ```
 

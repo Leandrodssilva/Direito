@@ -26,15 +26,26 @@
   var QUESTOES = {};
   LICOES.forEach(function (l) { questoesDe(l).forEach(function (q) { QUESTOES[q.id] = q; }); });
 
+  /* Código Civil explicado, artigo por artigo (js/codigo/*.js) */
+  var TOTAL_ARTIGOS_CC = 2046;
+  var ARTIGOS = ((window.CODIGO && window.CODIGO.artigos) || []).slice().sort(function (a, b) { return a.n - b.n; });
+  var PORNUM = {};
+  ARTIGOS.forEach(function (a, i) { a.indice = i; PORNUM[a.n] = a; });
+
+  /* Glossário: palavras das lições e dos artigos. Cada verbete aponta para onde aparece primeiro. */
   var GLOSSARIO = (function () {
     var vistos = {}, lista = [];
+    function add(p, href, onde, licao) {
+      var chave = normal(p.t);
+      if (vistos[chave]) return;
+      vistos[chave] = true;
+      lista.push({ t: p.t, d: p.d, href: href, onde: onde, licao: licao });
+    }
     LICOES.forEach(function (l) {
-      (l.palavras || []).forEach(function (p) {
-        var chave = normal(p.t);
-        if (vistos[chave]) return;
-        vistos[chave] = true;
-        lista.push({ t: p.t, d: p.d, licao: l });
-      });
+      (l.palavras || []).forEach(function (p) { add(p, "#licao-" + l.id, "Lição: " + l.titulo, l); });
+    });
+    ARTIGOS.forEach(function (a) {
+      (a.palavras || []).forEach(function (p) { add(p, "#art-" + a.n, "Código Civil, " + a.rotulo, null); });
     });
     return lista.sort(function (a, b) { return a.t.localeCompare(b.t, "pt-BR"); });
   })();
@@ -234,6 +245,12 @@
         '</ol>' +
       '</section>' +
 
+      (ARTIGOS.length ? '<section class="bloco">' +
+        '<div class="secao-titulo"><h2>Código Civil explicado</h2><span class="rotulo">' + ARTIGOS.length + ' de ' + TOTAL_ARTIGOS_CC.toLocaleString("pt-BR") + ' artigos</span></div>' +
+        '<p style="max-width:62ch;color:var(--tinta-suave)">Além das lições, você pode ler a própria lei, artigo por artigo, cada um com a explicação em palavras simples, item por item, e um exemplo da vida real.</p>' +
+        '<div class="acoes"><a class="botao secundario" href="#art-' + ARTIGOS[0].n + '">Ler o ' + esc(ARTIGOS[0].rotulo) + '</a><a class="botao secundario" href="#codigo">Ver todos os artigos</a></div>' +
+      '</section>' : '') +
+
       '<section class="bloco">' +
         '<div class="secao-titulo"><h2>A turma que aparece nas histórias</h2></div>' +
         '<div class="turma">' +
@@ -304,9 +321,13 @@
 
       '<section class="parte" id="lei"><h2><small>DEGRAU 3</small>O que a lei diz</h2><div class="lei">' +
         (l.lei || []).map(function (a) {
+          var achado = /^Código Civil, art\. ([\d.]+)/.exec(a.ref);
+          var art = achado && PORNUM[+achado[1].replace(/\./g, "")];
           return '<div class="artigo"><span class="ref">' + esc(a.ref) + '</span>' +
             (a.texto ? '<blockquote>“' + a.texto + '”</blockquote>' : '') +
-            '<p class="simples"><b>Em palavras simples:</b> ' + a.simples + '</p></div>';
+            '<p class="simples"><b>Em palavras simples:</b> ' + a.simples + '</p>' +
+            (art ? '<a class="ver-artigo" href="#art-' + art.n + '">Ver o ' + esc(art.rotulo) + ' explicado item por item ›</a>' : '') +
+            '</div>';
         }).join("") +
       '</div></section>' +
 
@@ -393,7 +414,7 @@
     filtro = filtro || "";
     mostrar('<div class="coluna">' +
       '<div><div class="secao-titulo"><h2>Dicionário do juridiquês</h2><span class="rotulo">' + GLOSSARIO.length + ' palavras</span></div>' +
-      '<p style="color:var(--tinta-suave)">Todas as palavras difíceis das lições, traduzidas. Toque no nome da lição para estudar o assunto.</p></div>' +
+      '<p style="color:var(--tinta-suave)">Todas as palavras difíceis das lições e dos artigos explicados, traduzidas. Toque no link para estudar o assunto.</p></div>' +
       '<label class="rotulo" for="busca-glossario">Procurar uma palavra</label>' +
       '<input id="busca-glossario" class="busca" type="search" placeholder="Ex.: usucapião, comodato, legítima…" autocomplete="off" value="' + esc(filtro) + '">' +
       '<nav class="letras" data-letras aria-label="Ir para a letra"></nav>' +
@@ -406,7 +427,7 @@
       lista.forEach(function (g) {
         var ini = normal(g.t).charAt(0).toUpperCase();
         if (ini !== atual) { atual = ini; letrasUsadas.push(ini); html += '<div class="letra-grupo" id="letra-' + ini + '">' + ini + '</div>'; }
-        html += '<div class="verbete"><b>' + esc(g.t) + '</b><span>' + g.d + '</span><a href="#licao-' + g.licao.id + '">Lição: ' + esc(g.licao.titulo) + '</a></div>';
+        html += '<div class="verbete"><b>' + esc(g.t) + '</b><span>' + g.d + '</span><a href="' + g.href + '">' + esc(g.onde) + '</a></div>';
       });
       app.querySelector("[data-verbetes]").innerHTML = html || '<p class="aviso">Nenhuma palavra encontrada. Tente outra grafia ou pergunte à Dona Justa.</p>';
       app.querySelector("[data-letras]").innerHTML = letrasUsadas.map(function (x) { return '<a href="#" data-letra="' + x + '">' + x + '</a>'; }).join("");
@@ -426,7 +447,7 @@
 
   function telaRevisar() {
     var idsErradas = Object.keys(estado.erradas).filter(function (id) { return QUESTOES[id]; });
-    var estudadas = GLOSSARIO.filter(function (g) { return feita(g.licao.id); });
+    var estudadas = GLOSSARIO.filter(function (g) { return g.licao && feita(g.licao.id); });
     var baralho = embaralhar(estudadas.length >= 6 ? estudadas : GLOSSARIO).slice(0, 12);
     var pos = 0, virada = false;
 
@@ -538,15 +559,120 @@
     });
   }
 
+  /* ---------- Código Civil explicado ---------- */
+  function textoDaLei(a) {
+    return a.texto.map(function (p) {
+      var rot = p.r ? '<b class="lei-rotulo">' + esc(p.r) + (p.tipo === "inciso" ? " –" : "") + '</b> ' : "";
+      return '<p class="lei-linha ' + p.tipo + '">' + rot + p.t +
+        (p.nota ? ' <span class="lei-nota">(' + esc(p.nota) + ')</span>' : '') + '</p>';
+    }).join("");
+  }
+  function semTags(s) { return String(s).replace(/<[^>]+>/g, ""); }
+
+  function telaCodigo() {
+    var pct = Math.round(ARTIGOS.length * 1000 / TOTAL_ARTIGOS_CC) / 10;
+    mostrar('<div class="coluna">' +
+      '<div><div class="secao-titulo"><h2>Código Civil explicado</h2><span class="rotulo">' + ARTIGOS.length + ' de ' + TOTAL_ARTIGOS_CC.toLocaleString("pt-BR") + ' artigos</span></div>' +
+      '<p style="color:var(--tinta-suave)">O texto da lei, artigo por artigo, com a explicação em palavras simples, item por item, um exemplo com a turma e as pegadinhas. Novos artigos entram aqui conforme forem explicados.</p>' +
+      '<div class="barra" aria-hidden="true" style="margin-top:12px"><i style="width:' + Math.max(pct, 0.6) + '%"></i></div></div>' +
+      '<label class="rotulo" for="busca-codigo">Procurar por número ou palavra</label>' +
+      '<input id="busca-codigo" class="busca" type="search" placeholder="Ex.: 5, emancipação, nascituro…" autocomplete="off">' +
+      '<div data-lista-artigos></div>' +
+      '<p class="aviso">Texto do Código Civil (Lei 10.406/2002) com as alterações até 2026, conforme indicado nas notas de redação. Antes de usar um artigo num caso real, confira a versão oficial e atualizada em <a href="https://www.planalto.gov.br/ccivil_03/leis/2002/l10406compilada.htm" target="_blank" rel="noopener">planalto.gov.br</a>.</p>' +
+      '</div>');
+    var campo = document.getElementById("busca-codigo");
+    function desenhar() {
+      var f = normal(campo.value.trim());
+      var numero = /^(art\.?\s*)?\d[\d.]*º?$/.test(f) ? +f.replace(/\D/g, "") : null;
+      var lista = ARTIGOS.filter(function (a) {
+        if (!f) return true;
+        if (numero !== null) return a.n === numero;
+        var tudo = a.texto.map(function (p) { return p.t; }).join(" ") + " " + semTags(a.simples) + " " + (a.palavras || []).map(function (p) { return p.t; }).join(" ");
+        return normal(tudo).indexOf(f) >= 0;
+      });
+      var html = "", grupo = "";
+      lista.forEach(function (a) {
+        var g = a.caminho.join(" › ");
+        if (g !== grupo) {
+          if (grupo) html += '</ul>';
+          grupo = g;
+          html += '<p class="rotulo grupo-codigo">' + esc(a.caminho.slice(0, -1).join(" › ")) + '</p><h3 class="capitulo-codigo">' + esc(a.caminho[a.caminho.length - 1]) + '</h3><ul class="lista-artigos">';
+        }
+        html += '<li><a href="#art-' + a.n + '"><b>' + esc(a.rotulo) + '</b><span>' + esc(semTags(a.simples)).slice(0, 150) + '…</span></a></li>';
+      });
+      if (grupo) html += '</ul>';
+      if (!lista.length) {
+        html = numero !== null && numero >= 1 && numero <= TOTAL_ARTIGOS_CC
+          ? '<p class="aviso">O art. ' + numero + ' ainda não foi explicado aqui. Os artigos entram em ordem, a partir do 1º.</p>'
+          : '<p class="aviso">Nenhum artigo encontrado com essa palavra.</p>';
+      }
+      app.querySelector("[data-lista-artigos]").innerHTML = html;
+    }
+    campo.addEventListener("input", desenhar);
+    desenhar();
+  }
+
+  function telaArtigo(a) {
+    var ant = ARTIGOS[a.indice - 1], prox = ARTIGOS[a.indice + 1];
+    var licao = a.licao && PORID[a.licao];
+    var html = '<article class="coluna entra">' +
+      '<header class="licao-cabeca">' +
+        '<nav class="migalha" aria-label="Você está em"><a href="#codigo">Código Civil</a>' +
+          a.caminho.map(function (c) { return '<span aria-hidden="true">›</span><span>' + esc(c) + '</span>'; }).join("") + '</nav>' +
+        '<h1>' + esc(a.rotulo) + '</h1>' +
+      '</header>' +
+
+      '<section class="parte"><h2><small>O QUE ESTÁ ESCRITO</small>Texto da lei</h2>' +
+        '<div class="artigo lei-texto"><span class="ref">Código Civil · ' + esc(a.rotulo) + '</span>' + textoDaLei(a) + '</div></section>' +
+
+      '<section class="parte"><h2><small>O QUE QUER DIZER</small>Em palavras simples</h2>' +
+        '<p class="ideia">' + a.simples + '</p></section>' +
+
+      ((a.itens && a.itens.length) ? '<section class="parte"><h2>Item por item</h2><dl class="itens">' +
+        a.itens.map(function (it) { return '<div><dt>' + esc(it.r) + '</dt><dd>' + it.t + '</dd></div>'; }).join("") +
+      '</dl></section>' : '') +
+
+      '<section class="parte"><h2>Na vida real</h2><div class="lousa historia"><p>' + a.exemplo + '</p></div></section>' +
+
+      (a.atencao ? '<section class="parte"><h2>Atenção</h2><div class="cuidado"><p>' + a.atencao + '</p></div></section>' : '') +
+
+      ((a.palavras && a.palavras.length) ? '<section class="parte"><h2>Palavras novas</h2><div class="palavras">' +
+        a.palavras.map(function (p) { return '<div class="palavra"><b>' + esc(p.t) + '</b><span>' + p.d + '</span></div>'; }).join("") +
+      '</div></section>' : '') +
+
+      ((licao || (a.relacionados && a.relacionados.length)) ? '<section class="parte"><h2>Para continuar</h2><div class="acoes">' +
+        (licao ? '<a class="botao" href="#licao-' + licao.id + '">Estudar a lição: ' + esc(licao.titulo) + '</a>' : '') +
+        (a.relacionados || []).filter(function (n) { return PORNUM[n]; }).map(function (n) {
+          return '<a class="botao secundario" href="#art-' + n + '">' + esc(PORNUM[n].rotulo) + '</a>';
+        }).join("") +
+      '</div></section>' : '') +
+
+      caixaDuvida() +
+
+      '<nav class="navega" aria-label="Outros artigos">' +
+        (ant ? '<a class="botao secundario" href="#art-' + ant.n + '">‹ ' + esc(ant.rotulo) + '</a>' : '<a class="botao secundario" href="#codigo">‹ Todos os artigos</a>') +
+        (prox ? '<a class="botao secundario" href="#art-' + prox.n + '">' + esc(prox.rotulo) + ' ›</a>' : '<a class="botao secundario" href="#codigo">Todos os artigos ›</a>') +
+      '</nav>' +
+    '</article>';
+    mostrar(html);
+    var campo = app.querySelector("#campo-duvida");
+    if (campo) campo.placeholder = "Ex.: Como isso funciona no meu caso? O que acontece se…";
+    var contexto = "Código Civil, " + a.rotulo + ". Texto: " + a.texto.map(function (p) { return (p.r ? p.r + " " : "") + p.t; }).join(" ") +
+      " Explicação do aplicativo: " + semTags(a.simples);
+    ligarDuvida(app, contexto);
+  }
+
   /* ---------- Rotas ---------- */
   function rota() {
     var h = (location.hash || "").replace(/^#/, "");
-    var nome = h.indexOf("licao-") === 0 ? "trilha" : (h || "inicio");
+    var nome = h.indexOf("licao-") === 0 ? "trilha" : h.indexOf("art-") === 0 ? "codigo" : (h || "inicio");
     document.querySelectorAll(".menu a").forEach(function (a) {
       if (a.getAttribute("data-rota") === nome) a.setAttribute("aria-current", "page");
       else a.removeAttribute("aria-current");
     });
     if (h.indexOf("licao-") === 0 && PORID[h.slice(6)]) return telaLicao(PORID[h.slice(6)]);
+    if (h.indexOf("art-") === 0 && PORNUM[+h.slice(4)]) return telaArtigo(PORNUM[+h.slice(4)]);
+    if (h === "codigo") return telaCodigo();
     if (h === "trilha") return telaTrilha();
     if (h === "glossario") return telaGlossario();
     if (h === "revisar") return telaRevisar();

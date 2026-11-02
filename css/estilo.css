@@ -488,6 +488,49 @@ tr:last-child td { border-bottom: 0; }
 
 .navega { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; border-top: 1px solid var(--linha); padding-top: 18px; }
 
+/* ---------- Código Civil explicado ---------- */
+.ver-artigo { font-size: var(--t-s); font-weight: 700; }
+.lei-texto { gap: 10px; }
+.lei-linha { font-family: var(--f-texto); }
+.lei-linha.caput { font-size: 1.08rem; }
+.lei-linha.inciso, .lei-linha.alinea { padding-left: 1.4em; }
+.lei-linha.alinea { padding-left: 2.8em; }
+.lei-rotulo { color: var(--caneta); font-weight: 700; }
+.lei-nota { font-size: var(--t-xs); color: var(--tinta-suave); font-style: italic; }
+.itens { margin: 0; display: grid; gap: 0; }
+.itens > div {
+  display: grid;
+  grid-template-columns: minmax(78px, auto) minmax(0, 1fr);
+  gap: 14px;
+  padding: 12px 0;
+  border-top: 1px solid var(--linha);
+}
+.itens > div:last-child { border-bottom: 1px solid var(--linha); }
+.itens dt { font-family: var(--f-ref); font-size: .8rem; color: var(--caneta); padding-top: .2em; }
+.itens dd { margin: 0; }
+@media (max-width: 480px) { .itens > div { grid-template-columns: 1fr; gap: 4px; } }
+.cuidado {
+  background: var(--cartao);
+  border: 1.5px solid var(--marca);
+  border-radius: var(--raio);
+  padding: 14px 16px;
+}
+.grupo-codigo { margin-top: 18px; }
+.capitulo-codigo { font-size: 1.15rem; margin: 4px 0 8px; }
+.lista-artigos { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--linha); }
+.lista-artigos a {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 12px;
+  padding: 11px 4px;
+  text-decoration: none;
+  color: var(--tinta);
+  border-bottom: 1px solid var(--linha);
+}
+.lista-artigos a:hover { background: var(--lousa-clara); }
+.lista-artigos b { font-family: var(--f-ref); font-size: .85rem; color: var(--caneta); padding-top: .15em; }
+.lista-artigos span { color: var(--tinta-suave); font-size: var(--t-s); }
+
 /* ---------- Pergunta à Dona Justa ---------- */
 .duvida { background: var(--cartao); border: 1px solid var(--linha); border-radius: var(--raio); padding: 16px; display: grid; gap: 12px; }
 .duvida textarea {
