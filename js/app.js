@@ -28,9 +28,12 @@
 
   /* Código Civil explicado, artigo por artigo (js/codigo/*.js) */
   var TOTAL_ARTIGOS_CC = 2046;
-  var ARTIGOS = ((window.CODIGO && window.CODIGO.artigos) || []).slice().sort(function (a, b) { return a.n - b.n; });
+  /* Artigos acrescentados por leis posteriores têm letra (art. 48-A): n = 48, letra = "A". */
+  var ARTIGOS = ((window.CODIGO && window.CODIGO.artigos) || []).slice();
+  ARTIGOS.forEach(function (a) { a.id = String(a.n) + (a.letra ? "-" + a.letra : ""); });
+  ARTIGOS.sort(function (a, b) { return a.n - b.n || (a.letra || "").localeCompare(b.letra || ""); });
   var PORNUM = {};
-  ARTIGOS.forEach(function (a, i) { a.indice = i; PORNUM[a.n] = a; });
+  ARTIGOS.forEach(function (a, i) { a.indice = i; PORNUM[a.id] = a; });
 
   /* Glossário: palavras das lições e dos artigos. Cada verbete aponta para onde aparece primeiro. */
   var GLOSSARIO = (function () {
@@ -45,7 +48,7 @@
       (l.palavras || []).forEach(function (p) { add(p, "#licao-" + l.id, "Lição: " + l.titulo, l); });
     });
     ARTIGOS.forEach(function (a) {
-      (a.palavras || []).forEach(function (p) { add(p, "#art-" + a.n, "Código Civil, " + a.rotulo, null); });
+      (a.palavras || []).forEach(function (p) { add(p, "#art-" + a.id, "Código Civil, " + a.rotulo, null); });
     });
     return lista.sort(function (a, b) { return a.t.localeCompare(b.t, "pt-BR"); });
   })();
@@ -248,7 +251,7 @@
       (ARTIGOS.length ? '<section class="bloco">' +
         '<div class="secao-titulo"><h2>Código Civil explicado</h2><span class="rotulo">' + ARTIGOS.length + ' de ' + TOTAL_ARTIGOS_CC.toLocaleString("pt-BR") + ' artigos</span></div>' +
         '<p style="max-width:62ch;color:var(--tinta-suave)">Além das lições, você pode ler a própria lei, artigo por artigo, cada um com a explicação em palavras simples, item por item, e um exemplo da vida real.</p>' +
-        '<div class="acoes"><a class="botao secundario" href="#art-' + ARTIGOS[0].n + '">Ler o ' + esc(ARTIGOS[0].rotulo) + '</a><a class="botao secundario" href="#codigo">Ver todos os artigos</a></div>' +
+        '<div class="acoes"><a class="botao secundario" href="#art-' + ARTIGOS[0].id + '">Ler o ' + esc(ARTIGOS[0].rotulo) + '</a><a class="botao secundario" href="#codigo">Ver todos os artigos</a></div>' +
       '</section>' : '') +
 
       '<section class="bloco">' +
@@ -322,11 +325,11 @@
       '<section class="parte" id="lei"><h2><small>DEGRAU 3</small>O que a lei diz</h2><div class="lei">' +
         (l.lei || []).map(function (a) {
           var achado = /^Código Civil, art\. ([\d.]+)/.exec(a.ref);
-          var art = achado && PORNUM[+achado[1].replace(/\./g, "")];
+          var art = achado && PORNUM[String(+achado[1].replace(/\./g, ""))];
           return '<div class="artigo"><span class="ref">' + esc(a.ref) + '</span>' +
             (a.texto ? '<blockquote>“' + a.texto + '”</blockquote>' : '') +
             '<p class="simples"><b>Em palavras simples:</b> ' + a.simples + '</p>' +
-            (art ? '<a class="ver-artigo" href="#art-' + art.n + '">Ver o ' + esc(art.rotulo) + ' explicado item por item ›</a>' : '') +
+            (art ? '<a class="ver-artigo" href="#art-' + art.id + '">Ver o ' + esc(art.rotulo) + ' explicado item por item ›</a>' : '') +
             '</div>';
         }).join("") +
       '</div></section>' +
@@ -584,9 +587,12 @@
     function desenhar() {
       var f = normal(campo.value.trim());
       var numero = /^(art\.?\s*)?\d[\d.]*º?$/.test(f) ? +f.replace(/\D/g, "") : null;
+      var letraBusca = /^(art\.?\s*)?([\d.]+)\s*-?\s*([a-z])$/.exec(f);
+      var comLetra = letraBusca ? letraBusca[2].replace(/\./g, "") + "-" + letraBusca[3] : null;
       var lista = ARTIGOS.filter(function (a) {
         if (!f) return true;
         if (numero !== null) return a.n === numero;
+        if (comLetra) return normal(a.id) === comLetra;
         var tudo = a.texto.map(function (p) { return p.t; }).join(" ") + " " + semTags(a.simples) + " " + (a.palavras || []).map(function (p) { return p.t; }).join(" ");
         return normal(tudo).indexOf(f) >= 0;
       });
@@ -598,7 +604,7 @@
           grupo = g;
           html += '<p class="rotulo grupo-codigo">' + esc(a.caminho.slice(0, -1).join(" › ")) + '</p><h3 class="capitulo-codigo">' + esc(a.caminho[a.caminho.length - 1]) + '</h3><ul class="lista-artigos">';
         }
-        html += '<li><a href="#art-' + a.n + '"><b>' + esc(a.rotulo) + '</b><span>' + esc(semTags(a.simples)).slice(0, 150) + '…</span></a></li>';
+        html += '<li><a href="#art-' + a.id + '"><b>' + esc(a.rotulo) + '</b><span>' + esc(semTags(a.simples)).slice(0, 150) + '…</span></a></li>';
       });
       if (grupo) html += '</ul>';
       if (!lista.length) {
@@ -642,16 +648,16 @@
 
       ((licao || (a.relacionados && a.relacionados.length)) ? '<section class="parte"><h2>Para continuar</h2><div class="acoes">' +
         (licao ? '<a class="botao" href="#licao-' + licao.id + '">Estudar a lição: ' + esc(licao.titulo) + '</a>' : '') +
-        (a.relacionados || []).filter(function (n) { return PORNUM[n]; }).map(function (n) {
-          return '<a class="botao secundario" href="#art-' + n + '">' + esc(PORNUM[n].rotulo) + '</a>';
+        (a.relacionados || []).filter(function (n) { return PORNUM[String(n)]; }).map(function (n) {
+          return '<a class="botao secundario" href="#art-' + PORNUM[String(n)].id + '">' + esc(PORNUM[String(n)].rotulo) + '</a>';
         }).join("") +
       '</div></section>' : '') +
 
       caixaDuvida() +
 
       '<nav class="navega" aria-label="Outros artigos">' +
-        (ant ? '<a class="botao secundario" href="#art-' + ant.n + '">‹ ' + esc(ant.rotulo) + '</a>' : '<a class="botao secundario" href="#codigo">‹ Todos os artigos</a>') +
-        (prox ? '<a class="botao secundario" href="#art-' + prox.n + '">' + esc(prox.rotulo) + ' ›</a>' : '<a class="botao secundario" href="#codigo">Todos os artigos ›</a>') +
+        (ant ? '<a class="botao secundario" href="#art-' + ant.id + '">‹ ' + esc(ant.rotulo) + '</a>' : '<a class="botao secundario" href="#codigo">‹ Todos os artigos</a>') +
+        (prox ? '<a class="botao secundario" href="#art-' + prox.id + '">' + esc(prox.rotulo) + ' ›</a>' : '<a class="botao secundario" href="#codigo">Todos os artigos ›</a>') +
       '</nav>' +
     '</article>';
     mostrar(html);
@@ -671,7 +677,7 @@
       else a.removeAttribute("aria-current");
     });
     if (h.indexOf("licao-") === 0 && PORID[h.slice(6)]) return telaLicao(PORID[h.slice(6)]);
-    if (h.indexOf("art-") === 0 && PORNUM[+h.slice(4)]) return telaArtigo(PORNUM[+h.slice(4)]);
+    if (h.indexOf("art-") === 0 && PORNUM[h.slice(4).toUpperCase()]) return telaArtigo(PORNUM[h.slice(4).toUpperCase()]);
     if (h === "codigo") return telaCodigo();
     if (h === "trilha") return telaTrilha();
     if (h === "glossario") return telaGlossario();
